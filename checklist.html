@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>해양조사 체크리스트</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    color: #e0e0e0;
+    padding: 20px 16px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .section {
+    background: #16213e;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid #0f3460;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-arrow {
+    font-size: 10px;
+    color: #555;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .section.open .toggle-arrow {
+    transform: rotate(90deg);
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #c8d8f0;
+    flex: 1;
+  }
+
+  .progress-wrap {
+    padding: 0 16px 14px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .progress-pct {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7eb8f7;
+    transition: color 0.3s;
+  }
+
+  .progress-count {
+    font-size: 11px;
+    color: #556;
+  }
+
+  .progress-bar-bg {
+    height: 5px;
+    background: #0f1e3a;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #2563eb, #7eb8f7);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .items-wrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .section.open .items-wrap {
+    max-height: 600px;
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 9px 16px;
+    border-top: 1px solid #0f1e3a;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .item:hover {
+    background: #1c2a4a;
+  }
+
+  .checkbox {
+    width: 17px;
+    height: 17px;
+    border-radius: 4px;
+    border: 1.5px solid #2563eb;
+    background: transparent;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .item.done .checkbox {
+    background: #2563eb;
+    border-color: #2563eb;
+  }
+
+  .checkmark {
+    display: none;
+    width: 9px;
+    height: 7px;
+  }
+
+  .item.done .checkmark {
+    display: block;
+  }
+
+  .item-text {
+    font-size: 13px;
+    color: #b0c4de;
+    line-height: 1.5;
+    transition: color 0.2s;
+  }
+
+  .item.done .item-text {
+    color: #3a4a60;
+    text-decoration: line-through;
+  }
+
+  .reset-btn {
+    display: block;
+    margin: 18px auto 0;
+    background: none;
+    border: 1px solid #1e3a5f;
+    color: #446;
+    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 99px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    border-color: #2563eb;
+    color: #7eb8f7;
+  }
+</style>
+</head>
+<body>
+
+<h1>해양조사 체크리스트</h1>
+
+<div id="app"></div>
+<button class="reset-btn" onclick="resetAll()">전체 초기화</button>
+
+<script>
+const DATA = [
+  {
+    id: "bokmyung",
+    title: "복명서",
+    items: [
+      "차량운행일지",
+      "하이패스 & 냉탑일지 (탁송 등 인수인계 사진)",
+      "영수증 붙이기",
+      "준비된 문서 스캔 후 결제"
+    ]
+  },
+  {
+    id: "hyeonchuk",
+    title: "현측부 (야장)",
+    items: [
+      "지점 사진 정리",
+      "엑셀 파일 사용 → 현측값 기입",
+      "다우 커뮤 → 김영태 차장 확인 → 수기 기입",
+      "조사계획서 & 수기 기입 → 스캔",
+      "스캔본 Shyboy, 나스 업로드"
+    ]
+  },
+  {
+    id: "gps",
+    title: "GPS 트랙 추출",
+    items: [
+      "GPS 내 트랙 추출 후 지점도 입히기",
+      "최종 GPX 및 PNG 파일 → 수질해양팀 폴더 업로드"
+    ]
+  }
+];
+
+// state: { [sectionId]: { open: bool, checked: Set } }
+const state = {};
+DATA.forEach(s => {
+  const saved = JSON.parse(localStorage.getItem('cl_' + s.id) || 'null');
+  state[s.id] = {
+    open: true,
+    checked: new Set(saved || [])
+  };
+});
+
+function save(id) {
+  localStorage.setItem('cl_' + id, JSON.stringify([...state[id].checked]));
+}
+
+function toggleSection(id) {
+  state[id].open = !state[id].open;
+  render();
+}
+
+function toggleItem(sectionId, idx) {
+  const s = state[sectionId];
+  if (s.checked.has(idx)) s.checked.delete(idx);
+  else s.checked.add(idx);
+  save(sectionId);
+  render();
+}
+
+function resetAll() {
+  DATA.forEach(s => { state[s.id].checked.clear(); save(s.id); });
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = DATA.map(section => {
+    const s = state[section.id];
+    const total = section.items.length;
+    const done = s.checked.size;
+    const pct = total === 0 ? 0 : Math.round(done / total * 100);
+
+    return `
+      <div class="section ${s.open ? 'open' : ''}" id="sec-${section.id}">
+        <div class="section-header" onclick="toggleSection('${section.id}')">
+          <span class="toggle-arrow">▶</span>
+          <span class="section-title">${section.title}</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span class="progress-pct">${pct}%</span>
+            <span class="progress-count">${done} / ${total}</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="items-wrap">
+          ${section.items.map((item, idx) => `
+            <div class="item ${s.checked.has(idx) ? 'done' : ''}" onclick="toggleItem('${section.id}', ${idx})">
+              <div class="checkbox">
+                <svg class="checkmark" viewBox="0 0 9 7" fill="none">
+                  <path d="M1 3.5L3.5 6L8 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="item-text">${item}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
